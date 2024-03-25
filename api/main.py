@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException
 
-from models import Tab
+from models import Tab, Bulk, BulkResponse
 from consts import SOURCES
 from sources import GPTSource, TabFetchingException
 
 app = FastAPI()
 
-gpt_source = GPTSource("https://guitarprotabs.org/")
+gpt_source = GPTSource("https://guitarprotabs.net")
 
 @app.get("/tabs/{source}/{query}")
 async def get_tabs(source, query) -> list[Tab]:
@@ -23,4 +23,15 @@ async def get_tabs(source, query) -> list[Tab]:
     return tabs
 
 
+@app.get("/bulk/{source}")
+async def get_bulk_tabs(source, query_list: Bulk) -> BulkResponse:
+    
+    tabs = []
+    errors = []
+    for q in query_list.queries:
+        try:
+            tabs.append(Tab(url=gpt_source.fetch(q), source=source))
+        except TabFetchingException as e:
+            errors.append(q)
 
+    return BulkResponse(tabs=tabs, errors=errors)

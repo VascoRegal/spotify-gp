@@ -30,22 +30,28 @@ class GPTSource(TabSource):
 
         best_match = None
         most_downloads = 0
-        rows = soup.findAll("tr")[1:-1]
+        rows = soup.findAll("tr")
         if (len(rows)) == 0:
             raise TabFetchingException(f"No tabs were found for query '{query}'")
         
         for tr in rows:
-            downloads = int(tr.find_all("span", class_="badge")[0].text.replace(",",""))
+            downloads = int(tr.find_all("td")[3].text.split(" ")[-1].replace(",",""))
             if downloads >= most_downloads:
                 most_downloads = downloads
-                best_match = tr.find_all("a")[0]["href"]
+                best_match = tr.find_all("td")[1].find_all("a")[0]['href']
         return best_match
 
     def _get_download_url(self, file_url):
-        return f"{file_url}download/"
+        soup = self._get_and_parse(self._create_tab_url(file_url))
+        
+        download_path = soup.find_all("a", class_="pull-right")[1]['href']
+        return f"{self._create_tab_url(download_path)}"
 
     def _create_search_query(self, query):
-        return f"{self.url}search.php?search={query.replace(' ','+')}&in=songs&page=1"
+        return f"{self.url}/q-{query.replace(' ','+')}"
+
+    def _create_tab_url(self, tab_path):
+        return f"{self.url}{tab_path}"
 
 
 class TabFetchingException(Exception):
